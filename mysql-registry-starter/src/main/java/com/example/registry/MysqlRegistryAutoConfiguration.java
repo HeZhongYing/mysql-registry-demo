@@ -25,11 +25,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ConditionalOnProperty(prefix = "mysql-registry", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class MysqlRegistryAutoConfiguration {
 
+    /**
+     * 服务注册/注销/心跳/剔除。
+     */
     @Bean
     public MysqlServiceRegistry mysqlServiceRegistry(JdbcTemplate jdbc, MysqlRegistryProperties properties) {
         return new MysqlServiceRegistry(jdbc, properties);
     }
 
+    /**
+     * 阻塞式服务发现，供 Feign 与 LoadBalancer 使用。
+     */
     @Bean
     public MysqlDiscoveryClient mysqlDiscoveryClient(JdbcTemplate jdbc, MysqlRegistryProperties properties) {
         return new MysqlDiscoveryClient(jdbc, properties);
@@ -44,11 +50,17 @@ public class MysqlRegistryAutoConfiguration {
         return new MysqlReactiveDiscoveryClient(delegate);
     }
 
+    /**
+     * 实例生命周期管理：注册、心跳、剔除、注销。
+     */
     @Bean
     public MysqlRegistryLifecycle mysqlRegistryLifecycle(MysqlServiceRegistry registry, MysqlRegistryProperties properties, Environment environment) {
         return new MysqlRegistryLifecycle(registry, properties, environment);
     }
 
+    /**
+     * 配置动态刷新轮询任务。
+     */
     @Bean
     public MysqlConfigRefresher mysqlConfigRefresher(JdbcTemplate jdbc, ConfigurableApplicationContext context) {
         return new MysqlConfigRefresher(jdbc, context.getEnvironment(), context);

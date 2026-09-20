@@ -60,6 +60,9 @@ public class MysqlConfigRefresher {
         }
     }
 
+    /**
+     * 查询全局配置与服务级配置，服务级覆盖全局。
+     */
     private Map<String, Object> loadConfigs(String serviceName) {
         Map<String, Object> configs = new LinkedHashMap<>();
         jdbc.query("SELECT service_name, config_key, config_value FROM service_config " +
@@ -71,6 +74,9 @@ public class MysqlConfigRefresher {
         return configs;
     }
 
+    /**
+     * 生成配置指纹，用于对比两次轮询之间配置是否变化。
+     */
     private String fingerprint(Map<String, Object> configs) {
         return String.join(";", configs.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
@@ -80,6 +86,9 @@ public class MysqlConfigRefresher {
 
     /**
      * 替换 Environment 中的 mysqlRegistry 属性源。
+     */
+    /**
+     * 替换 Environment 中的 mysqlRegistry 属性源，并广播变更的配置键。
      */
     private void updateEnvironment(Map<String, Object> configs) {
         MutablePropertySources sources = environment.getPropertySources();

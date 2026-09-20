@@ -23,36 +23,57 @@ public class MysqlRegistration implements Registration {
         this.metadata = metadata;
     }
 
+    /**
+     * 实例唯一标识，格式为 host:port。
+     */
     @Override
     public String getInstanceId() {
         return host + ":" + port;
     }
 
+    /**
+     * 服务名，对应 spring.application.name。
+     */
     @Override
     public String getServiceId() {
         return serviceId;
     }
 
+    /**
+     * 实例 IP。
+     */
     @Override
     public String getHost() {
         return host;
     }
 
+    /**
+     * 实例端口。
+     */
     @Override
     public int getPort() {
         return port;
     }
 
+    /**
+     * 是否 HTTPS，当前仅支持 HTTP。
+     */
     @Override
     public boolean isSecure() {
         return false;
     }
 
+    /**
+     * 实例访问地址。
+     */
     @Override
     public URI getUri() {
         return URI.create("http://" + host + ":" + port);
     }
 
+    /**
+     * 实例扩展元数据。
+     */
     @Override
     public Map<String, String> getMetadata() {
         return metadata;

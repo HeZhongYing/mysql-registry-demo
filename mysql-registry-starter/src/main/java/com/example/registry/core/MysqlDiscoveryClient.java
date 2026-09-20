@@ -39,6 +39,9 @@ public class MysqlDiscoveryClient implements DiscoveryClient {
                 serviceId);
     }
 
+    /**
+     * 查询所有有存活实例的服务名。
+     */
     @Override
     public List<String> getServices() {
         long seconds = properties.getHeartbeatTimeout() / 1000;
@@ -48,6 +51,9 @@ public class MysqlDiscoveryClient implements DiscoveryClient {
                 """.formatted(seconds), String.class);
     }
 
+    /**
+     * 实现描述。
+     */
     @Override
     public String description() {
         return "MySQL Registry DiscoveryClient";

@@ -23,6 +23,9 @@ public class MysqlConfigEnvironmentPostProcessor implements EnvironmentPostProce
 
     public static final String PROPERTY_SOURCE_NAME = "mysqlRegistry";
 
+    /**
+     * 在配置文件加载完成后，把 MySQL 中的配置以最高优先级注入 Environment。
+     */
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         if (!"true".equals(environment.getProperty("mysql-registry.enabled", "true"))) {
@@ -61,6 +64,9 @@ public class MysqlConfigEnvironmentPostProcessor implements EnvironmentPostProce
         return configs;
     }
 
+    /**
+     * 在 ConfigData（yml 等）加载之后执行，保证能读到数据源配置。
+     */
     @Override
     public int getOrder() {
         return ConfigDataEnvironmentPostProcessor.ORDER + 1;

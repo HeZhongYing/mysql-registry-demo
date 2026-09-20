@@ -15,16 +15,25 @@ public class MysqlReactiveDiscoveryClient implements ReactiveDiscoveryClient {
         this.delegate = delegate;
     }
 
+    /**
+     * 实现描述。
+     */
     @Override
     public String description() {
         return delegate.description();
     }
 
+    /**
+     * 响应式查询服务的可用实例。
+     */
     @Override
     public Flux<ServiceInstance> getInstances(String serviceId) {
         return Flux.fromIterable(delegate.getInstances(serviceId));
     }
 
+    /**
+     * 响应式查询所有有存活实例的服务名。
+     */
     @Override
     public Flux<String> getServices() {
         return Flux.fromIterable(delegate.getServices());

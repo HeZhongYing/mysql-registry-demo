@@ -61,15 +61,24 @@ public class MysqlServiceRegistry implements ServiceRegistry<Registration> {
         jdbc.update("UPDATE service_instance SET status = 'DOWN' WHERE status = 'UP' AND last_heartbeat < NOW(3) - INTERVAL " + seconds + " SECOND");
     }
 
+    /**
+     * 释放资源，无额外资源需要释放。
+     */
     @Override
     public void close() {
     }
 
+    /**
+     * 手动更新实例状态。
+     */
     @Override
     public void setStatus(Registration registration, String status) {
         jdbc.update("UPDATE service_instance SET status = ? WHERE instance_id = ?", status, registration.getInstanceId());
     }
 
+    /**
+     * 查询实例当前状态。
+     */
     @Override
     @SuppressWarnings("unchecked")
     public <T> T getStatus(Registration registration) {
