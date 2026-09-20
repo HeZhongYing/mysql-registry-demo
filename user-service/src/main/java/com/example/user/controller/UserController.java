@@ -24,6 +24,12 @@ public class UserController {
     private String greeting;
 
     /**
+     * 当前实例端口，用于观察负载均衡分发到了哪个实例。
+     */
+    @Value("${server.port}")
+    private int port;
+
+    /**
      * 按 ID 查询用户。
      */
     @GetMapping("/{id}")
@@ -31,7 +37,8 @@ public class UserController {
         return Map.of(
                 "id", id,
                 "name", "用户" + id,
-                "greeting", greeting
+                "greeting", greeting,
+                "fromPort", port
         );
     }
 
