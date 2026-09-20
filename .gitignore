@@ -30,3 +30,7 @@ logs/
 # Build
 build/
 dist/
+
+# Frontend
+node_modules/
+

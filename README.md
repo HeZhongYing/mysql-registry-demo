@@ -17,6 +17,8 @@
 | user-service | 用户服务 | 8081 |
 | order-service | 订单服务 | 8082 |
 | product-service | 商品服务 | 8083 |
+| console-service | 注册中心可视化控制台，提供查询 API 并托管前端页面 | 8084 |
+| frontend | Vue3 + Vite 前端工程，构建产物输出到 console-service | 5173(dev) |
 
 ## 技术栈
 
@@ -37,3 +39,4 @@
 - [x] 任务二：脚手架
 - [x] 任务三：建表
 - [x] 任务四：注册中心实现与改造
+- [x] 任务五：可视化控制台（`http://localhost:8080/console/`）

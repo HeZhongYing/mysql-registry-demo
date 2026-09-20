@@ -30,6 +30,12 @@ spring:
             - Path=/api/product/**
           filters:
             - StripPrefix=1
+        - id: console-route
+          uri: lb://console-service
+          predicates:
+            - Path=/console/**
+          filters:
+            - StripPrefix=1
 
 mysql-registry:
   enabled: true
