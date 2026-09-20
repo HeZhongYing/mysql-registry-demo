@@ -12,6 +12,10 @@
 
     <artifactId>gateway-service</artifactId>
     <name>gateway-service</name>
+    <properties>
+        <jar.collect.skip>false</jar.collect.skip>
+    </properties>
+
     <description>Spring Cloud Gateway 网关，路由走 MySQL 注册中心</description>
 
     <dependencies>

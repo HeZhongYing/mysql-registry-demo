@@ -43,7 +43,7 @@
    ```
    并确认防火墙放行 3306。
 
-2. **打包**（开发机执行）：`mvn package -DskipTests`，取各服务 `target/*.jar`
+2. **打包**（开发机执行）：`mvn package -DskipTests`，全部服务 jar 自动收拢到根目录 `dist/`，连同 `deploy/` 一起上传 Linux
 
 3. **Linux 启动**（jar 与 `deploy/` 放同一目录结构，或把 jar 放到 deploy 上级对应服务目录）：
    ```bash

@@ -12,6 +12,10 @@
 
     <artifactId>order-service</artifactId>
     <name>order-service</name>
+    <properties>
+        <jar.collect.skip>false</jar.collect.skip>
+    </properties>
+
     <description>订单服务，通过 Feign 调用用户/商品服务</description>
 
     <dependencies>

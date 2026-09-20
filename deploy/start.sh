@@ -15,9 +15,9 @@ if [ -z "$SERVICE" ]; then
     exit 1
 fi
 
-JAR=$(ls "$APP_DIR"/../"$SERVICE"/target/"$SERVICE"-*.jar 2>/dev/null || ls "$APP_DIR/$SERVICE"-*.jar 2>/dev/null | head -1)
+JAR=$(ls "$APP_DIR"/../dist/"$SERVICE"-*.jar 2>/dev/null || ls "$APP_DIR"/../"$SERVICE"/target/"$SERVICE"-*.jar 2>/dev/null || ls "$APP_DIR/$SERVICE"-*.jar 2>/dev/null | head -1)
 if [ -z "$JAR" ]; then
-    echo "未找到 $SERVICE 的 jar，请先在开发机执行 mvn package 并上传"
+    echo "未找到 $SERVICE 的 jar，请先在开发机执行 mvn package 并上传 dist 目录"
     exit 1
 fi
 

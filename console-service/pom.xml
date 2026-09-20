@@ -12,6 +12,10 @@
 
     <artifactId>console-service</artifactId>
     <name>console-service</name>
+    <properties>
+        <jar.collect.skip>false</jar.collect.skip>
+    </properties>
+
     <description>注册中心可视化控制台：提供实例/配置查询 API 并托管前端页面</description>
 
     <dependencies>
