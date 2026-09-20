@@ -20,6 +20,11 @@
 
     <modules>
         <module>registry-analysis</module>
+        <module>mysql-registry-starter</module>
+        <module>gateway-service</module>
+        <module>user-service</module>
+        <module>order-service</module>
+        <module>product-service</module>
     </modules>
 
     <properties>
