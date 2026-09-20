@@ -12,7 +12,6 @@
 
 | 模块 | 说明 | 端口 |
 | --- | --- | --- |
-| registry-analysis | 任务一：注册中心作用分析程序 | 无 |
 | mysql-registry-starter | 注册中心 + 配置中心实现（Spring Boot AutoConfiguration） | 无 |
 | gateway-service | Spring Cloud Gateway，路由走 MySQL 注册中心 | 8080 |
 | user-service | 用户服务 | 8081 |
