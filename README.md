@@ -31,7 +31,31 @@
 
 ## 数据库
 
-单个 `registry_demo` 库，4 个服务共用。
+单个 `registry_demo` 库，所有服务共用。
+
+## 跨环境部署（Windows / Linux 连同一 MySQL）
+
+1. **MySQL 远程访问**（MySQL 所在机器执行一次）：
+   ```sql
+   CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '123456';
+   GRANT ALL PRIVILEGES ON registry_demo.* TO 'root'@'%';
+   FLUSH PRIVILEGES;
+   ```
+   并确认防火墙放行 3306。
+
+2. **打包**（开发机执行）：`mvn package -DskipTests`，取各服务 `target/*.jar`
+
+3. **Linux 启动**（jar 与 `deploy/` 放同一目录结构，或把 jar 放到 deploy 上级对应服务目录）：
+   ```bash
+   # MYSQL_HOST 指向 MySQL 所在机器；多网卡时可加 --mysql-registry.instance-ip=本机可被访问的IP
+   MYSQL_HOST=<MySQL机器IP> ./start.sh user-service
+   MYSQL_HOST=<MySQL机器IP> ./start.sh user-service --server.port=8085   # 第二实例
+   ./stop.sh user-service
+   ```
+
+4. **验证**：控制台出现另一环境的实例 IP；网关调用 `fromPort` 分流到两个环境的实例。
+
+配置均支持环境变量覆盖：`MYSQL_HOST` / `MYSQL_PORT` / `MYSQL_USER` / `MYSQL_PASSWORD`。
 
 ## 任务进度
 

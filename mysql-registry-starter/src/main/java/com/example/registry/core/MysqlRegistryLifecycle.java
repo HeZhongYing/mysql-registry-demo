@@ -33,6 +33,7 @@ public class MysqlRegistryLifecycle implements ApplicationListener<WebServerInit
 
     /**
      * Web 容器就绪后注册（Tomcat 与 Netty 都会发布该事件）。
+     * 注册 IP 优先取 mysql-registry.instance-ip 配置，未配置则自动探测。
      */
     @Override
     public void onApplicationEvent(WebServerInitializedEvent event) {
@@ -41,7 +42,10 @@ public class MysqlRegistryLifecycle implements ApplicationListener<WebServerInit
         }
         try {
             String serviceId = environment.getProperty("spring.application.name", "unknown");
-            String host = InetAddress.getLocalHost().getHostAddress();
+            String configuredIp = properties.getInstanceIp();
+            String host = (configuredIp == null || configuredIp.isBlank())
+                    ? InetAddress.getLocalHost().getHostAddress()
+                    : configuredIp.trim();
             int port = event.getWebServer().getPort();
             registration = new MysqlRegistration(serviceId, host, port, java.util.Map.of("weight", "100"));
             registry.register(registration);

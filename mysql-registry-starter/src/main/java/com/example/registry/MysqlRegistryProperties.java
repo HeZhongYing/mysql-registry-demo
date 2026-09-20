@@ -11,6 +11,9 @@ public class MysqlRegistryProperties {
     /** 是否启用注册中心 */
     private boolean enabled = true;
 
+    /** 实例注册 IP，留空则自动探测本机 IP；跨环境部署时手动指定更可控 */
+    private String instanceIp = "";
+
     /** 心跳续约间隔（毫秒） */
     private long heartbeatInterval = 10_000;
 
@@ -29,6 +32,14 @@ public class MysqlRegistryProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getInstanceIp() {
+        return instanceIp;
+    }
+
+    public void setInstanceIp(String instanceIp) {
+        this.instanceIp = instanceIp;
     }
 
     public long getHeartbeatInterval() {
