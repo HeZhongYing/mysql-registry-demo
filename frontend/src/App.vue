@@ -126,7 +126,8 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="文件内容">
-          <el-input v-model="configDialog.content" type="textarea" :rows="12" class="code-editor" spellcheck="false" />
+          <div class="editor-tip">yaml 格式会实时校验，标红处为语法错误</div>
+          <code-editor v-model="configDialog.content" :format="configDialog.format" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -141,6 +142,8 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Cpu, Document } from '@element-plus/icons-vue'
+import YAML from 'yaml'
+import CodeEditor from './components/CodeEditor.vue'
 
 const pollInterval = 3000
 const tab = ref('instances')
@@ -234,6 +237,14 @@ async function submitConfig() {
   if (!configDialog.serviceName || !configDialog.fileName) {
     ElMessage.warning('服务名与文件名不能为空')
     return
+  }
+  if (configDialog.format === 'yaml' && configDialog.content.trim()) {
+    try {
+      YAML.parse(configDialog.content)
+    } catch (e) {
+      ElMessage.error(`yaml 格式错误：${e.message}`)
+      return
+    }
   }
   const body = { serviceName: configDialog.serviceName, fileName: configDialog.fileName, format: configDialog.format, content: configDialog.content }
   const res = configDialog.isEdit
@@ -336,8 +347,10 @@ onUnmounted(() => clearInterval(timer))
   overflow: hidden;
   white-space: pre-wrap;
 }
-.code-editor :deep(textarea) {
-  font-family: Consolas, Monaco, monospace;
-  font-size: 13px;
+.editor-tip {
+  width: 100%;
+  margin-bottom: 6px;
+  color: #909399;
+  font-size: 12px;
 }
 </style>
