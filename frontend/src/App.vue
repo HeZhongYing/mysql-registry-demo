@@ -61,7 +61,7 @@
 
       <el-tab-pane label="配置中心" name="configs">
         <div class="toolbar">
-          <el-button type="primary" size="small" @click="openConfigDialog()">新增配置</el-button>
+          <el-button type="primary" size="small" @click="openConfigDialog()">新增配置文件</el-button>
         </div>
         <el-table :data="configs" border stripe size="default">
           <el-table-column prop="service_name" label="归属服务" width="170">
@@ -69,12 +69,17 @@
               <el-tag :type="row.service_name === 'application' ? 'warning' : 'primary'" effect="plain">{{ row.service_name }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="config_key" label="配置键" width="220" />
-          <el-table-column prop="config_value" label="配置值" min-width="200">
+          <el-table-column prop="file_name" label="配置文件" width="220">
             <template #default="{ row }">
-              <code class="value">{{ row.config_value }}</code>
+              <el-icon style="margin-right:4px"><Document /></el-icon>{{ row.file_name }}
             </template>
           </el-table-column>
+          <el-table-column label="内容预览" min-width="240">
+            <template #default="{ row }">
+              <code class="value preview">{{ row.content }}</code>
+            </template>
+          </el-table-column>
+          <el-table-column prop="format" label="格式" width="100" align="center" />
           <el-table-column prop="version" label="版本" width="80" align="center" />
           <el-table-column prop="updated_at" label="更新时间" min-width="170">
             <template #default="{ row }">{{ formatTime(row.updated_at) }}</template>
@@ -102,7 +107,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="configDialog.visible" :title="configDialog.isEdit ? '编辑配置' : '新增配置'" width="480px">
+    <el-dialog v-model="configDialog.visible" :title="configDialog.isEdit ? '编辑配置文件' : '新增配置文件'" width="640px">
       <el-form label-width="80px">
         <el-form-item label="归属服务">
           <el-select v-if="!configDialog.isEdit" v-model="configDialog.serviceName" filterable allow-create default-first-option style="width: 100%">
@@ -110,12 +115,18 @@
           </el-select>
           <span v-else>{{ configDialog.serviceName }}</span>
         </el-form-item>
-        <el-form-item label="配置键">
-          <el-input v-if="!configDialog.isEdit" v-model="configDialog.configKey" placeholder="如 user.greeting" />
-          <span v-else>{{ configDialog.configKey }}</span>
+        <el-form-item v-if="!configDialog.isEdit" label="文件名">
+          <el-input v-model="configDialog.fileName" placeholder="如 order-service.yaml" />
         </el-form-item>
-        <el-form-item label="配置值">
-          <el-input v-model="configDialog.configValue" type="textarea" :rows="3" />
+        <el-form-item v-else label="文件名">{{ configDialog.fileName }}</el-form-item>
+        <el-form-item v-if="!configDialog.isEdit" label="格式">
+          <el-radio-group v-model="configDialog.format">
+            <el-radio value="yaml">yaml</el-radio>
+            <el-radio value="properties">properties</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="文件内容">
+          <el-input v-model="configDialog.content" type="textarea" :rows="12" class="code-editor" spellcheck="false" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -129,7 +140,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Cpu } from '@element-plus/icons-vue'
+import { Cpu, Document } from '@element-plus/icons-vue'
 
 const pollInterval = 3000
 const tab = ref('instances')
@@ -143,7 +154,7 @@ let serverTime = null
 const serviceNames = computed(() => [...new Set([...instances.value.map(i => i.service_name), 'application'])])
 
 const weightDialog = reactive({ visible: false, instanceId: '', oldWeight: 100, newWeight: 100 })
-const configDialog = reactive({ visible: false, isEdit: false, serviceName: 'application', configKey: '', configValue: '' })
+const configDialog = reactive({ visible: false, isEdit: false, serviceName: 'application', fileName: '', format: 'yaml', content: '' })
 
 async function request(url, method = 'GET', body) {
   const res = await fetch(url, {
@@ -206,23 +217,25 @@ function openConfigDialog(row) {
   if (row) {
     configDialog.isEdit = true
     configDialog.serviceName = row.service_name
-    configDialog.configKey = row.config_key
-    configDialog.configValue = row.config_value
+    configDialog.fileName = row.file_name
+    configDialog.format = row.format
+    configDialog.content = row.content
   } else {
     configDialog.isEdit = false
     configDialog.serviceName = 'application'
-    configDialog.configKey = ''
-    configDialog.configValue = ''
+    configDialog.fileName = ''
+    configDialog.format = 'yaml'
+    configDialog.content = ''
   }
   configDialog.visible = true
 }
 
 async function submitConfig() {
-  if (!configDialog.serviceName || !configDialog.configKey) {
-    ElMessage.warning('服务名与配置键不能为空')
+  if (!configDialog.serviceName || !configDialog.fileName) {
+    ElMessage.warning('服务名与文件名不能为空')
     return
   }
-  const body = { serviceName: configDialog.serviceName, configKey: configDialog.configKey, configValue: configDialog.configValue }
+  const body = { serviceName: configDialog.serviceName, fileName: configDialog.fileName, format: configDialog.format, content: configDialog.content }
   const res = configDialog.isEdit
     ? await request('api/configs', 'PUT', body)
     : await request('api/configs', 'POST', body)
@@ -231,13 +244,13 @@ async function submitConfig() {
     configDialog.visible = false
     fetchAll()
   } else {
-    ElMessage.error('保存失败，请检查配置是否已存在')
+    ElMessage.error('保存失败，请检查文件是否已存在')
   }
 }
 
 async function deleteConfig(row) {
-  await ElMessageBox.confirm(`确认删除配置 ${row.service_name} / ${row.config_key}？`, '删除配置', { type: 'warning' })
-  const res = await request(`api/configs/${row.service_name}/${row.config_key}`, 'DELETE')
+  await ElMessageBox.confirm(`确认删除配置文件 ${row.service_name} / ${row.file_name}？`, '删除配置文件', { type: 'warning' })
+  const res = await request(`api/configs/${row.service_name}/${row.file_name}`, 'DELETE')
   res.deleted ? ElMessage.success('已删除') : ElMessage.error('删除失败')
   fetchAll()
 }
@@ -316,5 +329,15 @@ onUnmounted(() => clearInterval(timer))
 }
 .toolbar {
   margin-bottom: 12px;
+}
+.preview {
+  display: block;
+  max-height: 60px;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+.code-editor :deep(textarea) {
+  font-family: Consolas, Monaco, monospace;
+  font-size: 13px;
 }
 </style>

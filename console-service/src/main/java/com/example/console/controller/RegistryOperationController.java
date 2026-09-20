@@ -49,42 +49,42 @@ public class RegistryOperationController {
     }
 
     /**
-     * 新增配置。
+     * 新增配置文件。
      */
     @PostMapping("/configs")
     public Map<String, Object> createConfig(@RequestBody ConfigRequest request) {
-        jdbc.update("INSERT INTO service_config (service_name, config_key, config_value) VALUES (?, ?, ?)",
-                request.serviceName(), request.configKey(), request.configValue());
+        jdbc.update("INSERT INTO service_config_file (service_name, file_name, format, content) VALUES (?, ?, ?, ?)",
+                request.serviceName(), request.fileName(), request.format(), request.content());
         return Map.of("created", 1);
     }
 
     /**
-     * 修改配置：版本号 +1 并写入变更历史，订阅服务约 5s 后自动刷新。
+     * 修改配置文件全文：版本号 +1 并写入变更历史，订阅服务约 5s 后自动刷新。
      */
     @PutMapping("/configs")
     public Map<String, Object> updateConfig(@RequestBody ConfigRequest request) {
-        String oldValue = jdbc.query("SELECT config_value FROM service_config WHERE service_name = ? AND config_key = ?",
-                rs -> rs.next() ? rs.getString(1) : null, request.serviceName(), request.configKey());
+        String oldContent = jdbc.query("SELECT content FROM service_config_file WHERE service_name = ? AND file_name = ?",
+                rs -> rs.next() ? rs.getString(1) : null, request.serviceName(), request.fileName());
         int rows = jdbc.update("""
-                UPDATE service_config SET config_value = ?, version = version + 1
-                WHERE service_name = ? AND config_key = ?
-                """, request.configValue(), request.serviceName(), request.configKey());
+                UPDATE service_config_file SET content = ?, version = version + 1
+                WHERE service_name = ? AND file_name = ?
+                """, request.content(), request.serviceName(), request.fileName());
         if (rows > 0) {
             Long version = jdbc.queryForObject(
-                    "SELECT version FROM service_config WHERE service_name = ? AND config_key = ?",
-                    Long.class, request.serviceName(), request.configKey());
-            jdbc.update("INSERT INTO config_history (service_name, config_key, old_value, new_value, version) VALUES (?, ?, ?, ?, ?)",
-                    request.serviceName(), request.configKey(), oldValue, request.configValue(), version);
+                    "SELECT version FROM service_config_file WHERE service_name = ? AND file_name = ?",
+                    Long.class, request.serviceName(), request.fileName());
+            jdbc.update("INSERT INTO config_history (service_name, file_name, old_content, new_content, version) VALUES (?, ?, ?, ?, ?)",
+                    request.serviceName(), request.fileName(), oldContent, request.content(), version);
         }
         return Map.of("updated", rows);
     }
 
     /**
-     * 删除配置。
+     * 删除配置文件。
      */
-    @DeleteMapping("/configs/{serviceName}/{configKey}")
-    public Map<String, Object> deleteConfig(@PathVariable String serviceName, @PathVariable String configKey) {
-        int rows = jdbc.update("DELETE FROM service_config WHERE service_name = ? AND config_key = ?", serviceName, configKey);
+    @DeleteMapping("/configs/{serviceName}/{fileName}")
+    public Map<String, Object> deleteConfig(@PathVariable String serviceName, @PathVariable String fileName) {
+        int rows = jdbc.update("DELETE FROM service_config_file WHERE service_name = ? AND file_name = ?", serviceName, fileName);
         return Map.of("deleted", rows);
     }
 
@@ -101,9 +101,9 @@ public class RegistryOperationController {
     }
 
     /**
-     * 配置增删改请求体。
+     * 配置文件增删改请求体。
      */
-    public record ConfigRequest(String serviceName, String configKey, String configValue) {
+    public record ConfigRequest(String serviceName, String fileName, String format, String content) {
     }
 
 }

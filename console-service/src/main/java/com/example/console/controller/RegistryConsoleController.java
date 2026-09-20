@@ -32,21 +32,21 @@ public class RegistryConsoleController {
     @GetMapping("/instances")
     public List<Map<String, Object>> listInstances() {
         return jdbc.queryForList("""
-                SELECT service_name, instance_id, host, port, status, last_heartbeat, registered_at
+                SELECT service_name, instance_id, host, port, weight, status, last_heartbeat, registered_at
                 FROM service_instance
                 ORDER BY service_name, instance_id
                 """);
     }
 
     /**
-     * 全部配置项。
+     * 全部配置文件。
      */
     @GetMapping("/configs")
     public List<Map<String, Object>> listConfigs() {
         return jdbc.queryForList("""
-                SELECT service_name, config_key, config_value, version, updated_at
-                FROM service_config
-                ORDER BY service_name, config_key
+                SELECT service_name, file_name, format, content, version, updated_at
+                FROM service_config_file
+                ORDER BY service_name, file_name
                 """);
     }
 
@@ -66,7 +66,7 @@ public class RegistryConsoleController {
         result.put("instanceDown", jdbc.queryForObject(
                 "SELECT COUNT(*) FROM service_instance WHERE status = 'DOWN'", Integer.class));
         result.put("configCount", jdbc.queryForObject(
-                "SELECT COUNT(*) FROM service_config", Integer.class));
+                "SELECT COUNT(*) FROM service_config_file", Integer.class));
         return result;
     }
 
