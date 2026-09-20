@@ -19,17 +19,18 @@ public class MysqlServiceRegistry implements ServiceRegistry<Registration> {
     }
 
     /**
-     * 注册实例，幂等：重复注册仅续约。
+     * 注册实例，幂等：重复注册仅续约。权重只在首次插入时写入，不覆盖管理员设置。
      */
     @Override
     public void register(Registration registration) {
+        int weight = Integer.parseInt(registration.getMetadata().getOrDefault("weight", "100"));
         jdbc.update("""
-                INSERT INTO service_instance (instance_id, service_name, host, port, status, last_heartbeat)
-                VALUES (?, ?, ?, ?, 'UP', NOW(3))
+                INSERT INTO service_instance (instance_id, service_name, host, port, weight, status, last_heartbeat)
+                VALUES (?, ?, ?, ?, ?, 'UP', NOW(3))
                 ON DUPLICATE KEY UPDATE status = 'UP', last_heartbeat = NOW(3), host = VALUES(host), port = VALUES(port)
                 """,
                 registration.getInstanceId(), registration.getServiceId(),
-                registration.getHost(), registration.getPort());
+                registration.getHost(), registration.getPort(), weight);
     }
 
     /**
@@ -41,15 +42,19 @@ public class MysqlServiceRegistry implements ServiceRegistry<Registration> {
     }
 
     /**
-     * 心跳续约，被剔除后自动重新注册。
+     * 心跳续约。UP 续约、被剔除（DOWN）的自动复活；手动下线（OFFLINE）的不动，记录不存在则重新注册。
      */
     public void heartbeat(Registration registration) {
         int rows = jdbc.update("""
-                UPDATE service_instance SET last_heartbeat = NOW(3)
-                WHERE instance_id = ? AND status = 'UP'
+                UPDATE service_instance SET last_heartbeat = NOW(3), status = 'UP'
+                WHERE instance_id = ? AND status IN ('UP', 'DOWN')
                 """, registration.getInstanceId());
         if (rows == 0) {
-            register(registration);
+            String status = jdbc.query("SELECT status FROM service_instance WHERE instance_id = ?",
+                    rs -> rs.next() ? rs.getString(1) : null, registration.getInstanceId());
+            if (!"OFFLINE".equals(status)) {
+                register(registration);
+            }
         }
     }
 

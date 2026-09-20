@@ -13,63 +13,122 @@
     <div class="cards">
       <el-card shadow="never"><div class="stat"><div class="num">{{ overview.serviceCount }}</div><div class="label">存活服务</div></div></el-card>
       <el-card shadow="never"><div class="stat"><div class="num ok">{{ overview.instanceUp }}</div><div class="label">在线实例 (UP)</div></div></el-card>
-      <el-card shadow="never"><div class="stat"><div class="num bad">{{ overview.instanceDown }}</div><div class="label">离线实例 (DOWN)</div></div></el-card>
+      <el-card shadow="never"><div class="stat"><div class="num">{{ overview.instanceOffline }}</div><div class="label">手动下线 (OFFLINE)</div></div></el-card>
+      <el-card shadow="never"><div class="stat"><div class="num bad">{{ overview.instanceDown }}</div><div class="label">心跳超时 (DOWN)</div></div></el-card>
       <el-card shadow="never"><div class="stat"><div class="num">{{ overview.configCount }}</div><div class="label">配置项</div></div></el-card>
     </div>
 
     <el-tabs v-model="tab">
       <el-tab-pane label="服务实例" name="instances">
         <el-table :data="instances" border stripe size="default">
-          <el-table-column prop="service_name" label="服务名" width="180">
+          <el-table-column prop="service_name" label="服务名" width="170">
             <template #default="{ row }">
               <el-icon style="margin-right:4px"><Cpu /></el-icon>{{ row.service_name }}
             </template>
           </el-table-column>
-          <el-table-column prop="instance_id" label="实例 ID" width="180" />
-          <el-table-column label="地址" width="200">
+          <el-table-column prop="instance_id" label="实例 ID" width="170" />
+          <el-table-column label="地址" width="180">
             <template #default="{ row }">{{ row.host }}:{{ row.port }}</template>
           </el-table-column>
-          <el-table-column label="状态" width="120" align="center">
+          <el-table-column label="权重" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.status === 'UP' ? 'success' : 'info'" effect="dark">{{ row.status }}</el-tag>
+              <el-tag effect="plain">{{ row.weight }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="心跳距今" width="140" align="center">
+          <el-table-column label="状态" width="110" align="center">
             <template #default="{ row }">
-              <span :class="{ stale: secondsAgo(row.last_heartbeat) > 30 }">{{ secondsAgo(row.last_heartbeat) }}s 前</span>
+              <el-tag :type="statusTag(row.status)" effect="dark">{{ row.status }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="registered_at" label="注册时间" min-width="200">
+          <el-table-column label="心跳距今" width="120" align="center">
+            <template #default="{ row }">
+              <span v-if="row.status === 'UP'" :class="{ stale: secondsAgo(row.last_heartbeat) > 30 }">{{ secondsAgo(row.last_heartbeat) }}s 前</span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="registered_at" label="注册时间" min-width="170">
             <template #default="{ row }">{{ formatTime(row.registered_at) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" align="center">
+            <template #default="{ row }">
+              <el-button v-if="row.status === 'UP'" size="small" type="danger" plain @click="offline(row)">下线</el-button>
+              <el-button v-if="row.status === 'OFFLINE'" size="small" type="success" plain @click="online(row)">上线</el-button>
+              <el-button size="small" type="primary" plain @click="openWeightDialog(row)">权重</el-button>
+            </template>
           </el-table-column>
         </el-table>
       </el-tab-pane>
 
       <el-tab-pane label="配置中心" name="configs">
+        <div class="toolbar">
+          <el-button type="primary" size="small" @click="openConfigDialog()">新增配置</el-button>
+        </div>
         <el-table :data="configs" border stripe size="default">
-          <el-table-column prop="service_name" label="归属服务" width="180">
+          <el-table-column prop="service_name" label="归属服务" width="170">
             <template #default="{ row }">
               <el-tag :type="row.service_name === 'application' ? 'warning' : 'primary'" effect="plain">{{ row.service_name }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="config_key" label="配置键" width="240" />
-          <el-table-column prop="config_value" label="配置值" min-width="240">
+          <el-table-column prop="config_key" label="配置键" width="220" />
+          <el-table-column prop="config_value" label="配置值" min-width="200">
             <template #default="{ row }">
               <code class="value">{{ row.config_value }}</code>
             </template>
           </el-table-column>
-          <el-table-column prop="version" label="版本" width="90" align="center" />
-          <el-table-column prop="updated_at" label="更新时间" min-width="200">
+          <el-table-column prop="version" label="版本" width="80" align="center" />
+          <el-table-column prop="updated_at" label="更新时间" min-width="170">
             <template #default="{ row }">{{ formatTime(row.updated_at) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="160" align="center">
+            <template #default="{ row }">
+              <el-button size="small" type="primary" plain @click="openConfigDialog(row)">编辑</el-button>
+              <el-button size="small" type="danger" plain @click="deleteConfig(row)">删除</el-button>
+            </template>
           </el-table-column>
         </el-table>
       </el-tab-pane>
     </el-tabs>
+
+    <el-dialog v-model="weightDialog.visible" :title="`修改权重 - ${weightDialog.instanceId}`" width="360px">
+      <el-form label-width="70px">
+        <el-form-item label="当前值">{{ weightDialog.oldWeight }}</el-form-item>
+        <el-form-item label="新权重">
+          <el-input-number v-model="weightDialog.newWeight" :min="1" :max="1000" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="weightDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="submitWeight">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="configDialog.visible" :title="configDialog.isEdit ? '编辑配置' : '新增配置'" width="480px">
+      <el-form label-width="80px">
+        <el-form-item label="归属服务">
+          <el-select v-if="!configDialog.isEdit" v-model="configDialog.serviceName" filterable allow-create default-first-option style="width: 100%">
+            <el-option v-for="name in serviceNames" :key="name" :label="name" :value="name" />
+          </el-select>
+          <span v-else>{{ configDialog.serviceName }}</span>
+        </el-form-item>
+        <el-form-item label="配置键">
+          <el-input v-if="!configDialog.isEdit" v-model="configDialog.configKey" placeholder="如 user.greeting" />
+          <span v-else>{{ configDialog.configKey }}</span>
+        </el-form-item>
+        <el-form-item label="配置值">
+          <el-input v-model="configDialog.configValue" type="textarea" :rows="3" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="configDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="submitConfig">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Cpu } from '@element-plus/icons-vue'
 
 const pollInterval = 3000
@@ -80,6 +139,20 @@ const instances = ref([])
 const configs = ref([])
 let timer = null
 let serverTime = null
+
+const serviceNames = computed(() => [...new Set([...instances.value.map(i => i.service_name), 'application'])])
+
+const weightDialog = reactive({ visible: false, instanceId: '', oldWeight: 100, newWeight: 100 })
+const configDialog = reactive({ visible: false, isEdit: false, serviceName: 'application', configKey: '', configValue: '' })
+
+async function request(url, method = 'GET', body) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined
+  })
+  return res.json()
+}
 
 async function fetchAll() {
   try {
@@ -98,6 +171,77 @@ async function fetchAll() {
   }
 }
 
+async function offline(row) {
+  await ElMessageBox.confirm(`确认下线实例 ${row.instance_id}？下线后将不再接收流量`, '手动下线', { type: 'warning' })
+  const res = await request(`api/instances/${row.instance_id}/status`, 'PUT', { status: 'OFFLINE' })
+  res.updated ? ElMessage.success('已下线') : ElMessage.error('下线失败')
+  fetchAll()
+}
+
+async function online(row) {
+  const res = await request(`api/instances/${row.instance_id}/status`, 'PUT', { status: 'UP' })
+  res.updated ? ElMessage.success('已上线') : ElMessage.error('上线失败')
+  fetchAll()
+}
+
+function openWeightDialog(row) {
+  weightDialog.instanceId = row.instance_id
+  weightDialog.oldWeight = row.weight
+  weightDialog.newWeight = row.weight
+  weightDialog.visible = true
+}
+
+async function submitWeight() {
+  const res = await request(`api/instances/${weightDialog.instanceId}/weight`, 'PUT', { weight: weightDialog.newWeight })
+  if (res.updated) {
+    ElMessage.success('权重已更新')
+    weightDialog.visible = false
+    fetchAll()
+  } else {
+    ElMessage.error('更新失败')
+  }
+}
+
+function openConfigDialog(row) {
+  if (row) {
+    configDialog.isEdit = true
+    configDialog.serviceName = row.service_name
+    configDialog.configKey = row.config_key
+    configDialog.configValue = row.config_value
+  } else {
+    configDialog.isEdit = false
+    configDialog.serviceName = 'application'
+    configDialog.configKey = ''
+    configDialog.configValue = ''
+  }
+  configDialog.visible = true
+}
+
+async function submitConfig() {
+  if (!configDialog.serviceName || !configDialog.configKey) {
+    ElMessage.warning('服务名与配置键不能为空')
+    return
+  }
+  const body = { serviceName: configDialog.serviceName, configKey: configDialog.configKey, configValue: configDialog.configValue }
+  const res = configDialog.isEdit
+    ? await request('api/configs', 'PUT', body)
+    : await request('api/configs', 'POST', body)
+  if (res.updated || res.created) {
+    ElMessage.success(configDialog.isEdit ? '已保存，订阅服务约 5s 后自动刷新' : '已新增')
+    configDialog.visible = false
+    fetchAll()
+  } else {
+    ElMessage.error('保存失败，请检查配置是否已存在')
+  }
+}
+
+async function deleteConfig(row) {
+  await ElMessageBox.confirm(`确认删除配置 ${row.service_name} / ${row.config_key}？`, '删除配置', { type: 'warning' })
+  const res = await request(`api/configs/${row.service_name}/${row.config_key}`, 'DELETE')
+  res.deleted ? ElMessage.success('已删除') : ElMessage.error('删除失败')
+  fetchAll()
+}
+
 function secondsAgo(time) {
   if (!serverTime) return '-'
   return Math.max(0, Math.round((serverTime - new Date(time)) / 1000))
@@ -105,6 +249,12 @@ function secondsAgo(time) {
 
 function formatTime(time) {
   return new Date(time).toLocaleString('zh-CN', { hour12: false })
+}
+
+function statusTag(status) {
+  if (status === 'UP') return 'success'
+  if (status === 'OFFLINE') return 'warning'
+  return 'info'
 }
 
 onMounted(() => {
@@ -117,7 +267,7 @@ onUnmounted(() => clearInterval(timer))
 
 <style scoped>
 .console {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 24px auto;
   padding: 0 16px;
   font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
@@ -138,7 +288,7 @@ onUnmounted(() => clearInterval(timer))
 }
 .cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -163,5 +313,8 @@ onUnmounted(() => clearInterval(timer))
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 13px;
+}
+.toolbar {
+  margin-bottom: 12px;
 }
 </style>

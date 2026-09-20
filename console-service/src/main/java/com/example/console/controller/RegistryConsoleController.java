@@ -51,7 +51,7 @@ public class RegistryConsoleController {
     }
 
     /**
-     * 控制台概览：实例总数、存活数、配置数、服务数。
+     * 控制台概览：实例总数、存活数、下线数、配置数、服务数。
      */
     @GetMapping("/overview")
     public Map<String, Object> overview() {
@@ -61,6 +61,8 @@ public class RegistryConsoleController {
                 "SELECT COUNT(DISTINCT service_name) FROM service_instance WHERE status = 'UP'", Integer.class));
         result.put("instanceUp", jdbc.queryForObject(
                 "SELECT COUNT(*) FROM service_instance WHERE status = 'UP'", Integer.class));
+        result.put("instanceOffline", jdbc.queryForObject(
+                "SELECT COUNT(*) FROM service_instance WHERE status = 'OFFLINE'", Integer.class));
         result.put("instanceDown", jdbc.queryForObject(
                 "SELECT COUNT(*) FROM service_instance WHERE status = 'DOWN'", Integer.class));
         result.put("configCount", jdbc.queryForObject(

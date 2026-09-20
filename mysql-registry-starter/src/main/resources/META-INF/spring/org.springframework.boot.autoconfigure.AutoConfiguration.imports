@@ -1,1 +1,2 @@
 com.example.registry.MysqlRegistryAutoConfiguration
+com.example.registry.loadbalancer.MysqlLoadBalancerAutoConfiguration

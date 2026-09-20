@@ -21,13 +21,13 @@ public class MysqlDiscoveryClient implements DiscoveryClient {
     }
 
     /**
-     * 查询服务的可用实例，心跳超时的实例不算可用。
+     * 查询服务的可用实例，心跳超时与手动下线的实例不算可用。权重放入 metadata 供负载均衡使用。
      */
     @Override
     public List<ServiceInstance> getInstances(String serviceId) {
         long seconds = properties.getHeartbeatTimeout() / 1000;
         return jdbc.query("""
-                SELECT service_name, host, port FROM service_instance
+                SELECT service_name, host, port, weight FROM service_instance
                 WHERE service_name = ? AND status = 'UP'
                   AND last_heartbeat > NOW(3) - INTERVAL %d SECOND
                 """.formatted(seconds),
@@ -35,7 +35,7 @@ public class MysqlDiscoveryClient implements DiscoveryClient {
                         rs.getString("service_name"),
                         rs.getString("host"),
                         rs.getInt("port"),
-                        java.util.Map.of()),
+                        java.util.Map.of("weight", String.valueOf(rs.getInt("weight")))),
                 serviceId);
     }
 

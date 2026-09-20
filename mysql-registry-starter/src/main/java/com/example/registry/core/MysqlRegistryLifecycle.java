@@ -43,7 +43,7 @@ public class MysqlRegistryLifecycle implements ApplicationListener<WebServerInit
             String serviceId = environment.getProperty("spring.application.name", "unknown");
             String host = InetAddress.getLocalHost().getHostAddress();
             int port = event.getWebServer().getPort();
-            registration = new MysqlRegistration(serviceId, host, port, java.util.Map.of());
+            registration = new MysqlRegistration(serviceId, host, port, java.util.Map.of("weight", "100"));
             registry.register(registration);
             log.info("已注册到 MySQL 注册中心: " + registration.getInstanceId() + " (" + serviceId + ")");
         } catch (Exception e) {
